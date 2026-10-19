@@ -47,11 +47,12 @@ else:
       output_dir_yt = tempfile.mkdtemp()
       video_path = os.path.join(output_dir_yt, "youtube_video.mp4")
 
-      # Configuración optimizada para descargas fluidas en servidores en la nube
+      # Configuración flexible y robusta para yt-dlp
       ydl_opts = {
-          "format": "best[height<=720][ext=mp4]/best[ext=mp4]/best",
+          "format": "bestvideo+bestaudio/best",
           "outtmpl": video_path,
           "noplaylist": True,
+          "merge_output_format": "mp4",
       }
 
       with st.spinner(
@@ -153,7 +154,6 @@ if video_path and os.path.exists(video_path):
           f"Procesando ({i+1}/{total_cortes}): {corte['nombre']}..."
       )
 
-      # Comando FFmpeg optimizado para corte rápido sin re-codificación
       cmd = [
           "ffmpeg",
           "-y",
