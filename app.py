@@ -64,8 +64,8 @@ else:
             speed = d.get('_speed_str', 'N/A')
             eta = d.get('_eta_str', 'N/A')
             status_text.text(
-                f'⬇️ Descargando video ligero... | Velocidad: {speed} | Restante'
-                f' aprox: {eta}'
+                f'⬇️ Descargando video... | Velocidad: {speed} | Restante aprox:'
+                f' {eta}'
             )
           except Exception:
             pass
@@ -74,9 +74,9 @@ else:
           status_text.text('✅ Descarga completada con éxito.')
 
 
-      # Usamos el formato 18 (MP4 360p con audio integrado) para evitar bloqueos y lentitud en la nube
+      # Formato universal 'best' para evitar errores de formatos no disponibles
       ydl_opts = {
-          'format': '18/best[ext=mp4]/best',
+          'format': 'best',
           'outtmpl': video_path,
           'noplaylist': True,
           'progress_hooks': [my_hook],
@@ -90,7 +90,7 @@ else:
       except Exception as e:
         st.error(
             f'Error al descargar el video de YouTube: {e}. Prueba con otro'
-            ' enlace o video más corto.'
+            ' enlace.'
         )
         video_path = None
 
