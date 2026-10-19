@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import zipfile
 import streamlit as st
+import yt_dlp
 
 st.set_page_config(
     page_title="Recortador de Videos y Canciones", page_icon="✂️", layout="centered"
@@ -10,27 +11,65 @@ st.set_page_config(
 
 st.title("✂️ Recortador de Videos y Canciones")
 st.markdown(
-    "Sube un video largo (como un set de música o concierto de 1:30 hr), define los fragmentos con marcas de tiempo y descárgalos por separado."
+    "Sube un video largo o ingresa un enlace de YouTube, define los"
+    " fragmentos con marcas de tiempo y descárgalos por separado."
 )
 
-# 1. Subir video
-uploaded_file = st.file_uploader(
-    "Sube tu archivo de video (MP4, MKV, MOV, AVI)",
-    type=["mp4", "mkv", "mov", "avi"],
+# Selección de fuente: Archivo local o YouTube
+source_type = st.radio(
+    "Selecciona la fuente del video:",
+    ["📂 Subir archivo de video", "🔗 Enlace de YouTube"],
+    horizontal=True,
 )
 
-if uploaded_file is not None:
-  # Guardar el video subido en un archivo temporal
-  tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-  tfile.write(uploaded_file.read())
-  video_path = tfile.name
+video_path = None
+source_name = ""
 
-  st.success("¡Video cargado con éxito!")
+if source_type == "📂 Subir archivo de video":
+  uploaded_file = st.file_uploader(
+      "Sube tu archivo de video (MP4, MKV, MOV, AVI)",
+      type=["mp4", "mkv", "mov", "avi"],
+  )
+  if uploaded_file is not None:
+    tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    tfile.write(uploaded_file.read())
+    video_path = tfile.name
+    source_name = uploaded_file.name
+    st.success("¡Video cargado con éxito!")
 
-  # Mostrar reproductor de video opcional o información básica
-  with st.expander("Ver información del archivo"):
-    st.write(f"Nombre: {uploaded_file.name}")
-    st.write(f"Tamaño: {uploaded_file.size / (1024*1024):.2f} MB")
+else:
+  youtube_url = st.text_input(
+      "Pega el enlace del video de YouTube:",
+      placeholder="https://www.youtube.com/watch?v=...",
+  )
+  if youtube_url:
+    if st.button("📥 Descargar video de YouTube", type="secondary"):
+      output_dir_yt = tempfile.mkdtemp()
+      video_path = os.path.join(output_dir_yt, "youtube_video.mp4")
+
+      ydl_opts = {
+          "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+          "outtmpl": video_path,
+          "noplaylist": True,
+      }
+
+      with st.spinner(
+          "Descargando video de YouTube... (Esto puede tomar un momento"
+          " dependiendo de la duración)"
+      ):
+        try:
+          with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(youtube_url, download=True)
+            source_name = info.get("title", "Video de YouTube")
+          st.success(f"¡Video descargado: {source_name}!")
+        except Exception as e:
+          st.error(f"Error al descargar el video de YouTube: {e}")
+          video_path = None
+
+# Si ya tenemos un video cargado o descargado, mostramos la sección de cortes
+if video_path and os.path.exists(video_path):
+  with st.expander("Ver información del video seleccionado"):
+    st.write(f"Fuente: {source_name}")
 
   st.divider()
   st.subheader("🎵 Define los fragmentos a recortar")
@@ -39,7 +78,6 @@ if uploaded_file is not None:
     " cada canción o parte que quieras extraer."
   )
 
-  # Usar Session State para almacenar la lista de cortes
   if "cortes" not in st.session_state:
     st.session_state.cortes = [{
         "nombre": "Cancion_1",
@@ -60,7 +98,6 @@ if uploaded_file is not None:
     st.session_state.cortes.pop(index)
 
 
-  # Formulario dinámico para los cortes
   for i, corte in enumerate(st.session_state.cortes):
     col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
     with col1:
@@ -90,7 +127,6 @@ if uploaded_file is not None:
 
   st.divider()
 
-  # Botón para procesar los recortes
   if st.button(
       "🚀 Procesar y Recortar Fragmentos",
       type="primary",
@@ -116,8 +152,6 @@ if uploaded_file is not None:
           f"Procesando ({i+1}/{total_cortes}): {corte['nombre']}..."
       )
 
-      # Comando de FFmpeg optimizado para corte rápido sin re-codificar (-c copy)
-      # Nota: Usamos -ss antes y después de -i para máxima precisión y velocidad
       cmd = [
           "ffmpeg",
           "-y",
@@ -152,7 +186,6 @@ if uploaded_file is not None:
     status_text.text("¡Proceso completado con éxito!")
     st.success("¡Todos los fragmentos han sido recortados!")
 
-    # Opción 1: Descargar como ZIP si hay varios archivos
     if len(archivos_generados) > 1:
       zip_path = os.path.join(output_dir, "fragmentos_recortados.zip")
       with zipfile.ZipFile(zip_path, "w") as zipf:
@@ -181,6 +214,5 @@ if uploaded_file is not None:
               mime="video/mp4",
           )
 
-    # Limpiar archivo de video original temporal
     if os.path.exists(video_path):
       os.remove(video_path)
