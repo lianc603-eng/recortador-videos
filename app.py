@@ -47,49 +47,38 @@ else:
       output_dir_yt = tempfile.mkdtemp()
       video_path = os.path.join(output_dir_yt, "youtube_video.mp4")
 
-      # Elementos visuales para el progreso en tiempo real
       progress_bar = st.progress(0)
       status_text = st.empty()
 
 
-      # Función que captura el progreso de yt-dlp
       def my_hook(d):
         if d['status'] == 'downloading':
           try:
-            # Obtener porcentaje descargado
             total_bytes = d.get('total_bytes') or d.get(
                 'total_bytes_estimate'
             , 0)
             downloaded_bytes = d.get('downloaded_bytes', 0)
-
             if total_bytes > 0:
               percentage = float(downloaded_bytes) / float(total_bytes)
               progress_bar.progress(min(max(percentage, 0.0), 1.0))
-
-            # Obtener textos informativos de velocidad y ETA
             speed = d.get('_speed_str', 'N/A')
             eta = d.get('_eta_str', 'N/A')
-            filename = os.path.basename(d.get('filename', 'video'))
-
             status_text.text(
-                f'⬇️ Descargando: {filename} | Velocidad: {speed} | Tiempo'
-                f' restante aprox: {eta}'
+                f'⬇️ Descargando video ligero... | Velocidad: {speed} | Restante'
+                f' aprox: {eta}'
             )
           except Exception:
             pass
-
         elif d['status'] == 'finished':
           progress_bar.progress(1.0)
-          status_text.text(
-              '🔄 Descarga finalizada. Procesando y combinando archivos...'
-          )
+          status_text.text('✅ Descarga completada con éxito.')
 
 
+      # Usamos el formato 18 (MP4 360p con audio integrado) para evitar bloqueos y lentitud en la nube
       ydl_opts = {
-          'format': 'bestvideo+bestaudio/best',
+          'format': '18/best[ext=mp4]/best',
           'outtmpl': video_path,
           'noplaylist': True,
-          'merge_output_format': 'mp4',
           'progress_hooks': [my_hook],
       }
 
@@ -97,9 +86,12 @@ else:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
           info = ydl.extract_info(youtube_url, download=True)
           source_name = info.get('title', 'Video de YouTube')
-        st.success(f'¡Video descargado con éxito: {source_name}!')
+        st.success(f'¡Video listo: {source_name}!')
       except Exception as e:
-        st.error(f'Error al descargar el video de YouTube: {e}')
+        st.error(
+            f'Error al descargar el video de YouTube: {e}. Prueba con otro'
+            ' enlace o video más corto.'
+        )
         video_path = None
 
 # Si ya tenemos un video cargado o descargado, mostramos la sección de cortes
