@@ -74,11 +74,12 @@ else:
           status_text.text('✅ Descarga completada con éxito.')
 
 
-      # Formato universal 'best' para evitar errores de formatos no disponibles
       ydl_opts = {
-          'format': 'best',
+          'format': 'bestvideo+bestaudio/best',
           'outtmpl': video_path,
           'noplaylist': True,
+          'merge_output_format': 'mp4',
+          'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
           'progress_hooks': [my_hook],
       }
 
