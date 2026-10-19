@@ -43,12 +43,13 @@ else:
       placeholder="https://www.youtube.com/watch?v=...",
   )
   if youtube_url:
-    if st.button("📥 Descargar video de YouTube", type="secondary"):
+    if st.button("📥 Descargar video de YouTube", type="primary"):
       output_dir_yt = tempfile.mkdtemp()
       video_path = os.path.join(output_dir_yt, "youtube_video.mp4")
 
+      # Configuración optimizada para descargas fluidas en servidores en la nube
       ydl_opts = {
-          "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+          "format": "best[height<=720][ext=mp4]/best[ext=mp4]/best",
           "outtmpl": video_path,
           "noplaylist": True,
       }
@@ -152,6 +153,7 @@ if video_path and os.path.exists(video_path):
           f"Procesando ({i+1}/{total_cortes}): {corte['nombre']}..."
       )
 
+      # Comando FFmpeg optimizado para corte rápido sin re-codificación
       cmd = [
           "ffmpeg",
           "-y",
